@@ -3,9 +3,13 @@ package insuide.wisefly.mappingtool.scanners;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
+
+import java.util.List;
 
 import insuide.wisefly.mappingtool.interfaces.wifiscanprovider;
 
@@ -34,17 +38,18 @@ public class WifiScanner {
 
     }
 
-    private void startWifiScanning(){
+    public void startWifiScanning(){
         handler.postDelayed(runnable, 0);
     }
 
-    private void invalidate(){
+    public void invalidate(){
         handler.removeCallbacksAndMessages(null);
         handler = null;
         runnable = null;
         if(wlock.isHeld()){
             wlock.release();
         }
+        wlock = null;
     }
 
     private void checkAndroidVersion(){
@@ -60,14 +65,21 @@ public class WifiScanner {
     private void performWifiScan(){
 
         mwifiManager.setWifiEnabled(false);
-        wlock = mwifiManager.createWifiLock(WifiManager.WIFI_MODE_SCAN_ONLY,"mappertool");
+        if(wlock == null) {
+            wlock = mwifiManager.createWifiLock(WifiManager.WIFI_MODE_SCAN_ONLY, "mappertool");
+        }
 
         if(!wlock.isHeld()){
             wlock.acquire();
         }
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        mContext.registerReceiver(wifiScanReceiver, intentFilter);
         boolean status = mwifiManager.startScan();
         if(!status){
-            mListener.onWifiPassMessage("Scan failed");
+//            if(mListener != null) {
+//                mListener.onWifiPassMessage("Scan failed");
+//            }
         }
     }
 
@@ -77,8 +89,16 @@ public class WifiScanner {
             boolean success = intent.getBooleanExtra(
                     WifiManager.EXTRA_RESULTS_UPDATED, false);
             if (success) {
-                //scanSuccess();
+                onScanSuccess();
             }
         }
     };
+
+    private void onScanSuccess(){
+        List<ScanResult>results = mwifiManager.getScanResults();
+        if(mListener != null){
+            mListener.onWifiScanAvailable(results);
+        }
+
+    }
 }
