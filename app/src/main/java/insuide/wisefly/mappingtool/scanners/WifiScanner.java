@@ -32,7 +32,7 @@ public class WifiScanner {
             @Override
             public void run() {
               performWifiScan();
-              handler.postDelayed(runnable, 500);
+              handler.postDelayed(runnable, 100);
             }
         };
 
@@ -63,8 +63,12 @@ public class WifiScanner {
     }
 
     private void performWifiScan(){
+        if(mwifiManager.isWifiEnabled()){
+            boolean flag = mwifiManager.setWifiEnabled(false);
+            System.out.println("xxx");
+        }
 
-        mwifiManager.setWifiEnabled(false);
+        //boolean flag = mwifiManager.setWifiEnabled(false);
         if(wlock == null) {
             wlock = mwifiManager.createWifiLock(WifiManager.WIFI_MODE_SCAN_ONLY, "mappertool");
         }
